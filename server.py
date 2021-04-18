@@ -30,20 +30,20 @@
 # Hardware specs: 1 processor, 2 cores, 4 logical cores (hyperthreading enabled)
 
 # Requests	No. parallel processes		Request timeout		Failed Connections		Time elapsed(user, sys, real)
-----------------------------------------------------------------------------------------------------------------
-	10k				100						100ms				154						47,64,39 seconds
-	10k				 20						100ms				120						47,64,39 seconds
-	10k				 10						100ms				 65						46,64,45 seconds
-	10k				 04						100ms				 03						47,60,53 seconds
-	10k				 02						100ms				 02						29,49,66 seconds
-	10k				 01						100ms				 01						26,42,84 seconds
-
-	10k				100						500ms				 87						47,64,39 seconds
-	10k				 20						500ms				 00						47,64,50 seconds
-	10k				 10						500ms				 00						47,63,54 seconds
-	10k				 04						500ms				 00						47,60,55 seconds
-	10k				 02						500ms				 00 					29,49,72 seconds
-	10k				 01						500ms				 00						26,43,84 seconds		
+#--------------------------------------------------------------------------------------------------------------
+#  10k				100						100ms				154						47,64,39 seconds
+#  10k				 20						100ms				120						47,64,39 seconds
+#  10k				 10						100ms				 65						46,64,45 seconds
+#  10k				 04						100ms				 03						47,60,53 seconds
+#  10k				 02						100ms				 02						29,49,66 seconds
+#  10k				 01						100ms				 01						26,42,84 seconds
+#  
+#  10k				100						500ms				 87						47,64,39 seconds
+#  10k				 20						500ms				 00						47,64,50 seconds
+#  10k				 10						500ms				 00						47,63,54 seconds
+#  10k				 04						500ms				 00						47,60,55 seconds
+#  10k				 02						500ms				 00 					29,49,72 seconds
+#  10k				 01						500ms				 00						26,43,84 seconds		
 ##############################################################################
 
 import socket
@@ -148,26 +148,31 @@ def basic_blocking_server(port):
 		client_socket, client_addr = server_socket.accept()
 		logging.debug ("Connected to client: %s" %str(client_addr))
 
+		print ("Connected to client: %s" %str(client_addr))
+
 		data = client_socket.recv(4096) 				# recv is blocking and stays connected to client 
 														# ... even if no data is being sent, it unblocks when the 
 														# ... client closes the connection
+		print("\tRequest received: %s" %str(data))												
 		if data: url_parser(client_socket, data)		# handle the get and post request
 
 	server_socket.close()
 ##################################################
 
 if __name__ == "__main__":
+	print ("\nCheck server.log for debug information")
+
 	logging.basicConfig(filename="server.log", 
 						filemode="w", 					# log truncates at every run
 						level=logging.DEBUG)
 
-	print ("Overwriting SIGINT handler")
+	print ("Overwriting SIGINT handler for proper clean up. Use Ctrl+C/SIGINT to request termination")
 	signal.signal(signal.SIGINT, server_exit_handler)
 
-	print ("Enabling server start event")
+	print ("Enabling server start event for synchronization\n")
 	SERVER_RUNNING.set()
 	
-	print ("Running server localhost:%d" %PORT)
+	print ("Running server localhost:%d ..." %PORT)
 	basic_blocking_server(PORT)
 
 	print ("\nExiting server ...")
