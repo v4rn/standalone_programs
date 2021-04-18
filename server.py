@@ -60,34 +60,34 @@ PORT		   = 8080
 
 ############### SIGINT handler ###################
 def server_exit_handler(signum, frame):
-	print("\n\nSignal handler SIGINT invoked - SIGNUM : %d" %signum)
-	print("Working on closing file descriptors safely. Please wait ...")
+    print("\n\nSignal handler SIGINT invoked - SIGNUM : %d" %signum)
+    print("Working on closing file descriptors safely. Please wait ...")
 
-	SERVER_RUNNING.clear()				# Unset to disable the while loop in func basic_blocking server
+    SERVER_RUNNING.clear()				# Unset to disable the while loop in func basic_blocking server
 
-	print("Created a local socket to close the server")
-	with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as close_socket:
-		close_socket.connect(("",PORT))	# Make this connection to move from accept to while condition
+    print("Created a local socket to close the server")
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as close_socket:
+        close_socket.connect(("",PORT))	# Make this connection to move from accept to while condition
 ##################################################
 
 ############ Simple in-memory ####################
 database = {}
 def set_key(key, value):	
-	database[key] = value
-	return {key : database[key]}		# After setting return {key:value} to notify success
+    database[key] = value
+    return {key : database[key]}		# After setting return {key:value} to notify success
 
 def get_key(key,_):
-	try:
-		return {key : database[key]}	# if key present then return {key:value}
-	except KeyError:					# ... else return {"KeyNotFound" : "InvalidOperation"}
-		return {"KeyNotFound" : "InvalidOperation"}
-																
+    try:
+        return {key : database[key]}	# if key present then return {key:value}
+    except KeyError:					# ... else return {"KeyNotFound" : "InvalidOperation"}
+        return {"KeyNotFound" : "InvalidOperation"}
+                                                                
 def del_key(key,_):			
-	try:						 
-		return {key : database.pop(key)}	# if key present then return {key : pop_key_value}	
-	except KeyError:						# ... else return {"KeyNotFound" : "InvalidOperation"}
-		return {"KeyNotFound" : "InvalidOperation"}
-							
+    try:						 
+        return {key : database.pop(key)}	# if key present then return {key : pop_key_value}	
+    except KeyError:						# ... else return {"KeyNotFound" : "InvalidOperation"}
+        return {"KeyNotFound" : "InvalidOperation"}
+                            
 ##################################################
 
 ################## HTML/HTTP #####################
@@ -100,79 +100,79 @@ Content-Length: {body_size}
 
 ################## URL PARSER ####################
 def query_parser(query):					
-	# example query string
-	# POST 			method >> a=1&b=5&c=10
-	# GET/DELETE 	method >> a&b&c
+    # example query string
+    # POST 			method >> a=1&b=5&c=10
+    # GET/DELETE 	method >> a&b&c
 
-	param_list = []								# convert params in the query string and return 
-	for param in query.split("&"):				# ... a list of (key,value) tuples
-		key_value = param.split("=")
-		key = key_value[0]
-		value = None if len(key_value) == 1 else key_value[-1]
-		param_list.append((key, value))
-	return param_list			
+    param_list = []								# convert params in the query string and return 
+    for param in query.split("&"):				# ... a list of (key,value) tuples
+        key_value = param.split("=")
+        key = key_value[0]
+        value = None if len(key_value) == 1 else key_value[-1]
+        param_list.append((key, value))
+    return param_list			
 
 def url_parser(client_socket, http_data):
-	logging.debug ("Data recevied: %s" %str(http_data))
+    logging.debug ("Data recevied: %s" %str(http_data))
 
-	http_method = http_data.split()[0].decode().upper()
-	url_path  	= http_data.split()[1].decode()
-	query 	  	= url_path[url_path.find('?')+1:]
-		
-	# build a check valid routine here
-	logging.debug ("HTTP data: %s" %http_data)
-	
-	operation_dict = { 	
-						# http_methods  : func call to database
+    http_method = http_data.split()[0].decode().upper()
+    url_path  	= http_data.split()[1].decode()
+    query 	  	= url_path[url_path.find('?')+1:]
+        
+    # build a check valid routine here
+    logging.debug ("HTTP data: %s" %http_data)
+    
+    operation_dict = { 	
+                        # http_methods  : func call to database
 
-						"DELETE" 		: del_key,
-						"POST"	 		: set_key,
-						"GET"	 		: get_key,
-					}
-	
-	resp_dict = {}								# build the response dict using the query parser
-	for param in query_parser(query):
-		resp_dict.update(operation_dict[http_method](*param))
+                        "DELETE" 		: del_key,
+                        "POST"	 		: set_key,
+                        "GET"	 		: get_key,
+                    }
+    
+    resp_dict = {}								# build the response dict using the query parser
+    for param in query_parser(query):
+        resp_dict.update(operation_dict[http_method](*param))
 
-	resp = json.dumps(resp_dict)				# convert the python dictionary into a json string
-	client_socket.sendall(HTTP_OK_RESPONSE(body_size = len(resp.encode()), body = resp).encode()) 
+    resp = json.dumps(resp_dict)				# convert the python dictionary into a json string
+    client_socket.sendall(HTTP_OK_RESPONSE(body_size = len(resp.encode()), body = resp).encode()) 
 ##################################################
 
 ######### Basic blocking server ##################
 def basic_blocking_server(port):
-	server_socket  = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	server_socket.bind(('',port))
-	server_socket.listen()								# socket.SOMAXCONN is 128
+    server_socket  = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.bind(('',port))
+    server_socket.listen()								# socket.SOMAXCONN is 128 TODO: More testing on this
 
-	while SERVER_RUNNING.is_set():
-		client_socket, client_addr = server_socket.accept()
-		logging.debug ("Connected to client: %s" %str(client_addr))
+    while SERVER_RUNNING.is_set():
+        client_socket, client_addr = server_socket.accept()
+        logging.debug ("Connected to client: %s" %str(client_addr))
 
-		print ("Connected to client: %s" %str(client_addr))
+        print ("Connected to client: %s" %str(client_addr))
 
-		data = client_socket.recv(4096) 				# recv is blocking and stays connected to client 
-														# ... even if no data is being sent, it unblocks when the 
-														# ... client closes the connection
-		print("\tRequest received: %s" %str(data))												
-		if data: url_parser(client_socket, data)		# handle the get and post request
+        data = client_socket.recv(4096) 				# recv is blocking and stays connected to client 
+                                                        # ... even if no data is being sent, it unblocks when the 
+                                                        # ... client closes the connection
+        print("\tRequest received: %s" %str(data))												
+        if data: url_parser(client_socket, data)		# handle the get and post request
 
-	server_socket.close()
+    server_socket.close()
 ##################################################
 
 if __name__ == "__main__":
-	print ("\nCheck server.log for debug information")
+    print ("\nCheck server.log for debug information")
 
-	logging.basicConfig(filename="server.log", 
-						filemode="w", 					# log truncates at every run
-						level=logging.DEBUG)
+    logging.basicConfig(filename="server.log", 
+                        filemode="w", 					# log truncates at every run
+                        level=logging.DEBUG)
 
-	print ("Overwriting SIGINT handler for proper clean up. Use Ctrl+C/SIGINT to request termination")
-	signal.signal(signal.SIGINT, server_exit_handler)
+    print ("Overwriting SIGINT handler for proper clean up. Use Ctrl+C/SIGINT to request termination")
+    signal.signal(signal.SIGINT, server_exit_handler)
 
-	print ("Enabling server start event for synchronization\n")
-	SERVER_RUNNING.set()
-	
-	print ("Running server localhost:%d ..." %PORT)
-	basic_blocking_server(PORT)
+    print ("Enabling server start event for synchronization\n")
+    SERVER_RUNNING.set()
+    
+    print ("Running server localhost:%d ..." %PORT)
+    basic_blocking_server(PORT)
 
-	print ("\nExiting server ...")
+    print ("\nExiting server ...")
