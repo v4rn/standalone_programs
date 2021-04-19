@@ -16,8 +16,8 @@ int main() {
 				by the kernel until it is read from the read end of
 				the pipe (from the man page)
 	*/
-
 	int pipefd[2]; 
+	pipe(pipefd);
 	
 	/*	Child will get 0, and parent will get the child process's pid
 	*/
@@ -32,7 +32,11 @@ int main() {
 			pipefd[0], the read end of the pipe gets assigned file
 			descriptor 0, which is the stdin	
 		*/
-		dup2(0, pipefd[0]);	
+		dup2(pipefd[0], STDIN_FILENO);
+
+		/* 	EITHER READ FROM STDIN OR RUN A PROGRAM IN EXEC WHICH WILL
+			IMPLICITLY READ FROM STDIN
+		*/
 
 	} else {
 
@@ -44,12 +48,11 @@ int main() {
 			pipefd[1], the write end of the pipe gets assigned file
 			descriptor 1, which is the stdout
 		*/
-		dup2(1, pipefd[1]);		
+		dup2(pipefd[1], STDOUT_FILENO);
 
-		/* Writing to stdout pipes the data to child process
-		*/ 
-		printf("Hello from parent\n");
-		printf("child pid = %d\n", child_pid);
+		/*	WRITE DATA TO PRINTF OR STDOUT THAT YOU WANT TO PROCESS IN
+			CHILD PROCESS. TEST BUFFERING. EOF?
+		*/
 	}
 	
 	return 0;
