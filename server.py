@@ -16,7 +16,7 @@
 # 
 # Notes: 
 #               - Overwrite the SIGINT handler to handle safe termination Ctrl+C/SIGINT
-#               - Set the SERVER_RUNNING event variable to true. The SIGINT handler turns off this variable. The server's main while loop stops when this event variable is unset
+#               - The SIGINT handler sets SERVER_RUNNING to False, which stops the  main while loop
 #               - Currently the http request can only be 4096 bytes long
 #
 # Confusing things:
@@ -48,14 +48,13 @@
 
 import socket
 import signal
-import threading
 import os
 import logging                                          # NOTE: thread-safe
 import json
 
 ############### Global vars ######################
-SERVER_RUNNING = threading.Event()                      # Event
-PORT               = 8080
+SERVER_RUNNING  = True
+PORT            = 8080
 ##################################################
 
 ############### SIGINT handler ###################
@@ -63,7 +62,8 @@ def server_exit_handler(signum, frame):
     print("\n\nSignal handler SIGINT invoked - SIGNUM : %d" %signum)
     print("Working on closing file descriptors safely. Please wait ...")
 
-    SERVER_RUNNING.clear()                              # Unset to disable the while loop in func basic_blocking server
+    global SERVER_RUNNING
+    SERVER_RUNNING = False                              # Unset to disable the while loop in func basic_blocking server
 
     print("Created a local socket to close the server")
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as close_socket:
@@ -144,7 +144,7 @@ def basic_blocking_server(port):
     server_socket.bind(('',port))
     server_socket.listen()                              # socket.SOMAXCONN is 128 TODO: More testing on this
 
-    while SERVER_RUNNING.is_set():
+    while SERVER_RUNNING:
         client_socket, client_addr = server_socket.accept()
         logging.debug ("Connected to client: %s" %str(client_addr))
 
@@ -169,9 +169,6 @@ if __name__ == "__main__":
     print ("Overwriting SIGINT handler for proper clean up. Use Ctrl+C/SIGINT to request termination")
     signal.signal(signal.SIGINT, server_exit_handler)
 
-    print ("Enabling server start event for synchronization\n")
-    SERVER_RUNNING.set()
-    
     print ("Running server localhost:%d ..." %PORT)
     basic_blocking_server(PORT)
 
